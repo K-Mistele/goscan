@@ -3,8 +3,12 @@ package lib
 import(
 	"fmt"
 	"github.com/sparrc/go-ping"
+	"github.com/korovkin/limiter"
+
 )
 
+var numPingsFinished int
+var numPings int
 func PortScan() (error) {
 	Debug("Running Port Scan")
 	
@@ -19,16 +23,24 @@ func PingScan(outFileName string) (error) {
 	if err != nil {
 		return err
 	}
+	numPings = len(hostList)
+	numPingsFinished = 0
 
 	Debug(fmt.Sprintf("Ping scanning %d hosts :)", len(hostList)))
 
 	// CREATE CHANNEL FOR RESPONSES
 	pongs := make(chan *Pong)
 
-	// START ALL GOROUTINES
+	// START ALL GOROUTINES, 2048 at a time to prevent too many open file descriptors
+	goRoutineLimiter := limiter.NewConcurrencyLimiter(2048)
 	for _, host := range hostList {
-		go Ping(host, pongs)
+		goRoutineLimiter.Execute(func(){
+			Ping(host, pongs)
+		})
 	}
+
+	goRoutineLimiter.Wait()
+	
 
 	var liveHosts []string
 
@@ -73,6 +85,10 @@ func Ping(IP string, pongs chan *Pong) {
 			IP: IP,
 			Alive: alive,
 			Error: nil,
+		}
+		numPingsFinished++
+		if numPingsFinished % 10000 == 0 {
+			Debug(fmt.Sprintf("Finished %d out of %d pings", numPingsFinished, numPings))
 		}
 	}
 	pinger.Run()
