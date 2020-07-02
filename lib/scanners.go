@@ -15,7 +15,7 @@ func PortScan() (error) {
 func PingScan(outFileName string) (error) {
 	Debug("Running Ping Scan")
 
-	hostList, err := makeHostList(testSubnets)
+	hostList, err := makeHostList(RFC1918Subnets)
 	if err != nil {
 		return err
 	}
