@@ -23,7 +23,7 @@ func main(){
 	// DO COMMAND LINE ARGS
 	var doPortScan, doPingScan bool
 	var outFileName, targetFileName string
-	var workerCount int
+	var workerCount, timeoutSeconds int
 
 	// FLAG DECLARATIONS
 	flag.BoolVar(&doPortScan, "portscan", false, "Do a TCP port scan for common ports")
@@ -31,6 +31,7 @@ func main(){
 	flag.StringVar(&outFileName, "outfile", "live_hosts.txt", "Specify the text file to write live hosts to")
 	flag.IntVar(&workerCount, "workers", 512, "The number of workers to use. Default is 1024; limited by the number of file descriptors available to your user. Check with (ulimit -n)")
 	flag.StringVar(&targetFileName, "targetfile", "", "The file containing CIDRs to scan. Optional; if not specified then defaults to RFC1918 subnets")
+	flag.IntVar(&timeoutSeconds, "timeout", 2, "The timeout in seconds of a ping request. Default is 2")
 
 	flag.Parse()
 
@@ -44,7 +45,7 @@ func main(){
 	}
 
 	if doPingScan == true {
-		PingScan(outFileName, workerCount, targetFileName)
+		PingScan(outFileName, workerCount, targetFileName, timeoutSeconds)
 	}
 }
 

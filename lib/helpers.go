@@ -121,7 +121,7 @@ func getTargetsFromFile(fileName string) ([]string, error) {
 	for scanner.Scan() {
 		cidr := scanner.Text()
 		targetCIDRs = append(targetCIDRs, cidr)
-		Debug("Read subnet " + cidr + "from file")
+		Debug("Read subnet " + cidr + " from file")
 	}
 
 	if err := scanner.Err(); err != nil {

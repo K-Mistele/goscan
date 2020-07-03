@@ -4,6 +4,7 @@ import(
 	"fmt"
 	"sync"
 	"github.com/sparrc/go-ping"
+	"time"
 )
 var numPingsFinished int
 var numPings int
@@ -12,9 +13,12 @@ var numPings int
 var jobs = make(chan string, 10000)
 var pongs = make(chan *pong, 10000)
 
-// RUN A PING SCAN
-func PingScan(outFileName string, workerCount int, targetFileName string) (error) {
+var timeout time.Duration
 
+// RUN A PING SCAN
+func PingScan(outFileName string, workerCount int, targetFileName string, timeoutSeconds int) (error) {
+
+	timeout = time.Duration(timeoutSeconds) * time.Second
 	// GET SUBNET LIST
 	var targets[] string
 	var err error
@@ -62,7 +66,7 @@ func doPingScan(IP string)  {
 		}
 	}
 	pinger.Count = 1 // ONLY PING ONCE
-	pinger.Timeout = 200000000
+	pinger.Timeout = timeout
 	// WHEN PING IS DONE
 	pinger.OnFinish = func(stats *ping.Statistics) {
 		var alive bool;
@@ -74,7 +78,7 @@ func doPingScan(IP string)  {
 		}
 		numPingsFinished++
 		if numPingsFinished % 170000 == 0 {
-			Debug(fmt.Sprintf("Finished %d percent of %d pings", numPingsFinished/numPings, numPings))
+			Debug(fmt.Sprintf("Finished %f percent of %d pings", (float64(numPingsFinished)/float64(numPings))*100.0, numPings))
 		}
 	}
 	pinger.Run()
