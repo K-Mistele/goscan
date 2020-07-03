@@ -1,6 +1,6 @@
 package lib
 
-type Pong struct {
+type pong struct {
 	IP		string
 	Alive	bool
 	Error	error

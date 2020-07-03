@@ -3,12 +3,9 @@ package lib
 import(
 	"fmt"
 	"github.com/sparrc/go-ping"
-	"github.com/korovkin/limiter"
-
 )
 
-var numPingsFinished int
-var numPings int
+
 func PortScan() (error) {
 	Debug("Running Port Scan")
 	
@@ -16,36 +13,42 @@ func PortScan() (error) {
 	return nil
 }
 
-func PingScan(outFileName string) (error) {
+// PERFORM A PING SCAN
+func derpScan(outFileName string, workers int) (error) {
 	Debug("Running Ping Scan")
 
-	hostList, err := makeHostList(RFC1918Subnets)
+
+	// CREATE CHANNEL FOR JOBS
+	jobs := make(chan string, 10000)
+
+	// CREATE CHANNEL FOR RESPONSES
+	pongs := make(chan *pong, 10000)
+
+	// CREATE THE TARGET LIST BY PUSHING ALL IPS (EXCEPT NETOWRK AND BROADCAST ADDRESSES) INTO A CHANNEL FOR WORKERS
+	targets, err := makeHostList(RFC1918Subnets)
+
+	go pushTargetsToChannel(targets, jobs)
 	if err != nil {
 		return err
 	}
-	numPings = len(hostList)
+
+	// TRACK COMPLETION
+	numPings = len(jobs)
 	numPingsFinished = 0
+	
+	Debug(fmt.Sprintf("Ping scanning %d hosts :)", len(jobs)))
+	
 
-	Debug(fmt.Sprintf("Ping scanning %d hosts :)", len(hostList)))
-
-	// CREATE CHANNEL FOR RESPONSES
-	pongs := make(chan *Pong)
-
-	// START ALL GOROUTINES, 2048 at a time to prevent too many open file descriptors
-	goRoutineLimiter := limiter.NewConcurrencyLimiter(2048)
-	for _, host := range hostList {
-		goRoutineLimiter.Execute(func(){
-			Ping(host, pongs)
-		})
+	// START ALL WORKERS, limited to prevent too many open file descriptors
+	for i := 0; i < workers; i++ {
+		go PingWorker(jobs, pongs)
 	}
-
-	goRoutineLimiter.Wait()
 	
 
 	var liveHosts []string
 
 	// CATCH ALL RESPONSES
-	for i := 0; i < len(hostList); i++ {
+	for i := 0; i < numPings; i++ {
 		pong := <-pongs
 		if pong.Alive == true {
 			Debug("Host " + pong.IP + " is alive!")
@@ -62,36 +65,39 @@ func PingScan(outFileName string) (error) {
 }
 
 // GOROUTING TO DO A PING
-func Ping(IP string, pongs chan *Pong) {
+func PingWorker(IPs chan string, pongs chan *pong) {
 
-	// CREATE A PINGER
-	pinger, err := ping.NewPinger(IP)
-	if err != nil {
-		pongs <- &Pong {
-			IP: IP,
-			Alive: false,
-			Error: err,
+	for (len(IPs) > 0) {
+		IP := <- IPs
+		// CREATE A PINGER
+		pinger, err := ping.NewPinger(IP)
+		if err != nil {
+			pongs <- &pong {
+				IP: IP,
+				Alive: false,
+				Error: err,
+			}
 		}
+		pinger.Count = 1 // ONLY PING ONCE
+		pinger.Timeout = 200000000
+		// WHEN PING IS DONE
+		pinger.OnFinish = func(stats *ping.Statistics) {
+			var alive bool;
+			alive = stats.PacketsRecv > 0
+
+			pongs <- &pong {
+				IP: IP,
+				Alive: alive,
+				Error: nil,
+			}
+			numPingsFinished++
+			if numPingsFinished % 10000 == 0 {
+				Debug(fmt.Sprintf("Finished %d out of %d pings", numPingsFinished, numPings))
+			}
+		}
+		pinger.Run()
 	}
-	pinger.Count = 1 // ONLY PING ONCE
-	pinger.Timeout = 200000000
-	// WHEN PING IS DONE
-	pinger.OnFinish = func(stats *ping.Statistics) {
-
-		var alive bool;
-		alive = stats.PacketsRecv > 0
-
-		pongs <- &Pong {
-			IP: IP,
-			Alive: alive,
-			Error: nil,
-		}
-		numPingsFinished++
-		if numPingsFinished % 10000 == 0 {
-			Debug(fmt.Sprintf("Finished %d out of %d pings", numPingsFinished, numPings))
-		}
-	}
-	pinger.Run()
+	
 
 
 }

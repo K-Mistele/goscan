@@ -15,7 +15,8 @@ func Warn(msg string) {
 	log.Println("[!]", msg)
 }
 
-func HostsInCidr(cidr string) ([]string, error) {
+// RETURN A SLICE OF STRINGS OF ALL THE IP ADDRESSES IN A CIDR BLOCK, SANS THE NETWORK AND BROADCAST ADDRESS
+func hostsInCidr(cidr string) ([]string, error) {
 	ip, network, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return nil, err
@@ -38,6 +39,7 @@ func HostsInCidr(cidr string) ([]string, error) {
 
 }
 
+// INCREMENT AN IP ADDRESS
 func increment(ip net.IP) {
 	for j:= len(ip) - 1; j >= 0; j-- {
 		ip[j]++
@@ -47,6 +49,7 @@ func increment(ip net.IP) {
 	}
 }
 
+// CREATE A HOST LIST FROM AN ARRAY OF CIDR NOTATIONS
 func makeHostList(cidrRanges []string) ([]string, error) {
 
 	Debug("Creating host list")
@@ -54,7 +57,7 @@ func makeHostList(cidrRanges []string) ([]string, error) {
 
 	for _, subnetCIDR := range cidrRanges {
 		Debug("Adding subnet " + subnetCIDR + " targets")
-		hostsInSubnet, err := HostsInCidr(subnetCIDR)
+		hostsInSubnet, err := hostsInCidr(subnetCIDR)
 		if err != nil {
 			return nil, err
 		}
@@ -66,6 +69,7 @@ func makeHostList(cidrRanges []string) ([]string, error) {
 
 }
 
+// WRITE ALL THE HOSTS THAT WERE DISCOVERED TO BE ALIVE TO AN OUTPUT FILE
 func writeLiveHosts(addresses []string, filename string) {
 	
 	Debug("Writing out live hosts to file " + filename)
@@ -84,8 +88,18 @@ func writeLiveHosts(addresses []string, filename string) {
 	writer.Flush()
 }
 
+// PANIC IF THERE'S AN ERROR
 func check (e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+// PUSH TARGETS TO THE JOBS CHANNEL
+func pushTargetsToChannel(targets []string, jobs chan string) { 
+	for _, target := range targets {
+		jobs <- target
+	}
+
+	close(jobs)
 }
