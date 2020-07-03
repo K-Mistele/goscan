@@ -62,8 +62,8 @@ func doPingScan(IP string)  {
 			Error: nil,
 		}
 		numPingsFinished++
-		if numPingsFinished % 10000 == 0 {
-			Debug(fmt.Sprintf("Finished %d out of %d pings", numPingsFinished, numPings))
+		if numPingsFinished % 170000 == 0 {
+			Debug(fmt.Sprintf("Finished %d percent of %d pings", numPingsFinished/numPings, numPings))
 		}
 	}
 	pinger.Run()
