@@ -21,7 +21,8 @@ func PingScan(outFileName string, workerCount int) (error) {
 		return err
 	}
 	Debug(fmt.Sprintf("Identified %d targets :)", len(targets)))
-	
+	numPings = len(targets)
+	numPingsFinished = 0
 	// ALLOCATE TASKS TO WORKERS
 	Debug("Allocating tasks")
 	go allocate(targets)
