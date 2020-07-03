@@ -36,7 +36,6 @@ func PingScan(outFileName string, workerCount int) (error) {
 	<- done
 
 	
-	close(pongs)
 	return nil
 }
 
