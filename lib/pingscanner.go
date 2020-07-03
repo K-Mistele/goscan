@@ -13,10 +13,22 @@ var jobs = make(chan string, 10000)
 var pongs = make(chan *pong, 10000)
 
 // RUN A PING SCAN
-func PingScan(outFileName string, workerCount int) (error) {
+func PingScan(outFileName string, workerCount int, targetFileName string) (error) {
 
-	// GET TARGET LIST
-	targets, err := makeHostList(RFC1918Subnets)
+	// GET SUBNET LIST
+	var targets[] string
+	var err error
+
+	if targetFileName == "" {
+		// GET TARGET LIST
+		Debug("Using RFC1918 subnets as targets")
+		targets, err = makeHostList(RFC1918Subnets)
+	}else {
+		// PARSE FROM FILE
+		Debug("Reading targets from file " + targetFileName)
+		targets, err = getTargetsFromFile(targetFileName)
+	}
+	
 	if err != nil{
 		return err
 	}

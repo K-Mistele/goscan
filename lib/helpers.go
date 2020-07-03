@@ -103,3 +103,43 @@ func pushTargetsToChannel(targets []string, jobs chan string) {
 
 	close(jobs)
 }
+
+// GET TARGETS FROM FILE
+func getTargetsFromFile(fileName string) ([]string, error) {
+	var targetCIDRs []string
+	var err error
+	
+	file, err := os.Open(fileName)
+	if err != nil {
+		Warn("Failed to open target file!")
+		panic(err)
+	}
+
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		cidr := scanner.Text()
+		targetCIDRs = append(targetCIDRs, cidr)
+		Debug("Read subnet " + cidr + "from file")
+	}
+
+	if err := scanner.Err(); err != nil {
+		Warn("Error reading file!")
+		panic(err)
+	}
+
+	var hostList []string
+	// NOW WE HAVE A SLICE OF CIDRS
+	for _, subnetCIDR := range targetCIDRs {
+		Debug("Adding subnet " + subnetCIDR + " targets")
+		hostsInSubnet, err := hostsInCidr(subnetCIDR)
+		if err != nil {
+			return nil, err
+		}
+		hostList = append(hostList, hostsInSubnet...)
+		
+	}
+
+	return hostList, nil
+}

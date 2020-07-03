@@ -22,7 +22,7 @@ func main(){
 
 	// DO COMMAND LINE ARGS
 	var doPortScan, doPingScan bool
-	var outFileName string
+	var outFileName, targetFileName string
 	var workerCount int
 
 	// FLAG DECLARATIONS
@@ -30,6 +30,7 @@ func main(){
 	flag.BoolVar(&doPingScan, "pingscan", false, "Do an ICMP echo ping scan for hosts")
 	flag.StringVar(&outFileName, "outfile", "live_hosts.txt", "Specify the text file to write live hosts to")
 	flag.IntVar(&workerCount, "workers", 512, "The number of workers to use. Default is 1024; limited by the number of file descriptors available to your user. Check with (ulimit -n)")
+	flag.StringVar(&targetFileName, "targetfile", "", "The file containing CIDRs to scan. Optional; if not specified then defaults to RFC1918 subnets")
 
 	flag.Parse()
 
@@ -43,7 +44,7 @@ func main(){
 	}
 
 	if doPingScan == true {
-		PingScan(outFileName, workerCount)
+		PingScan(outFileName, workerCount, targetFileName)
 	}
 }
 
